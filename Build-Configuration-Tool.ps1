@@ -41,6 +41,20 @@ param (
 	[switch]$Delete
 )
 
+function Load-File ([string]$FilePath){
+	Write-Verbose "Reading content of $FilePath"
+	[string]$text = [System.IO.File]::ReadAllText($filepath)
+	$text -split "`r`n"
+	Write-Verbose "Done Reading content of $FilePath"
+}
+
+function Save-File ([string]$FilePath, [string[]]$Content){
+	Write-Verbose "Writing content to $FilePath"
+	[string]$text = $Content -join "`r`n"
+	[System.IO.File]::WriteAllText($filepath, $text, [System.Text.Encoding]::UTF8)
+	Write-Verbose "Done Writing content to $FilePath"
+}
+
 if($Delete) {
 	if($Copy -ne "" -and $Rename -eq "") {
 		# Copy+Delete=Rename
@@ -54,7 +68,7 @@ if($Delete) {
 Get-ChildItem *.sln -Recurse | ForEach-Object {
 	echo $_.FullName
 
-	$content = Get-Content $_.FullName | 
+	$content = Load-File $_.FullName | 
 		ForEach-Object {
 			$match = $_ | Select-String "^.*$Configuration\|.*$"
 			if($match) {
@@ -70,7 +84,8 @@ Get-ChildItem *.sln -Recurse | ForEach-Object {
 				$_
 			}
 		}
-	$content | Out-File -Encoding UTF8 -FilePath $_.FullName
+		
+	Save-File -FilePath $_.FullName -Content $content
 }
 
 function Rename-PropertyGroup($lines, $from, $to) {
@@ -83,9 +98,10 @@ function Rename-PropertyGroup($lines, $from, $to) {
 Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recurse | ForEach-Object {
 	$file = $_
 	echo $file.FullName
-	$content = Get-Content $file.FullName
+	$content = Load-File $file.FullName
 	$newContent = for($i=0; $i -lt $content.Length; $i++) {
 		$line = $content[$i]
+		Write-Verbose "Processing line [$i]$line"
 		if($line -match ".*\<PropertyGroup.*'$Configuration['|].*") {
 			$end = $i + 1
 			while($content[$end] -inotlike "*</PropertyGroup>*") { $end++ }
@@ -107,14 +123,18 @@ Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recu
 			} else {
 				$line
 			}
-		} elseif($line -match ".*\<None Include\=`"(?<file>.*$Configuration.config)`".*") {
+		} elseif($line -match ".*\<(Content|None) Include\=`"(?<file>.*$Configuration.config)`".*") {
 			$filename = $matches['file'];
 			$filenameWithPath = Join-Path $file.Directory.FullName $filename
 			if($line -like "*/>*") {
 				$item = $line
 			} else {
 				$end = $i + 1
-				while($content[$end] -inotlike "*</None>*") { $end++ }
+				while($content[$end] -inotmatch ".*\<\/(Content|None)\>.*") { 
+					$end++ 
+					#sanity check
+					if($end -gt $content.Length) { throw "Unable to detect end tag at line $i (zero based)" }
+				}
 				$item = $content[$i..$end]
 				$i = $end
 				}
@@ -141,5 +161,5 @@ Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recu
 		}
 	}
 
-	$newContent | Out-File -Encoding UTF8 -FilePath $_.FullName
+	Save-File -FilePath $_.FullName -Content $newContent
 }
