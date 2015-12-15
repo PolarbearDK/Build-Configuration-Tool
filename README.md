@@ -3,8 +3,9 @@ Script that Renames, Copies &amp; Deletes Visual Studio Build Configurations
 
 Supported files | Changes
 --- | ---
-Solution files (.sln) | Modifies solution build configuration
-msbuild files (.csproj .vbproj .scproj ect.) | Modifies project build configuration. References Config transformations are handled too.
+Solution files (.sln) | Modifies solution build configurations
+msbuild files (.csproj .vbproj) | Modifies project build configurations. Referenced Config transformations are Renamed, Copied &amp; Deleted along with build configurations.
+Team development for Sitecore msbuild files (.scproj ect.) | Modifies build configurations.
 
 ### Rename Build Configuration
 ```powershell
