@@ -41,6 +41,9 @@ param (
 	[switch]$Delete
 )
 
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version latest
+
 function Load-File ([string]$FilePath){
 	Write-Verbose "Reading content of $FilePath"
 	[string]$text = [System.IO.File]::ReadAllText($filepath)
@@ -83,6 +86,21 @@ Get-ChildItem *.sln -Recurse | ForEach-Object {
 			} else {
 				$_
 			}
+		} |
+		ForEach-Object {
+			$match = $_ | Select-String "^.*$Configuration\.AspNetCompiler\..*$"
+			if($match) {
+				if($Rename -ne "") {
+					$_.Replace("$Configuration.","$Rename.")
+				} else {
+					if(-not $Delete) {$_}
+				}
+				if($Copy -ne "") {
+					$_.Replace("$Configuration.","$Copy.")
+				}
+			} else {
+				$_
+			}
 		}
 		
 	Save-File -FilePath $_.FullName -Content $content
@@ -119,7 +137,7 @@ Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recu
 			}
 		} elseif($line -like "*<Configuration Condition=`" '`$(Configuration)' == '' `">$Configuration</Configuration>" ) {
 			if($Rename -ne "") {
-				$line.Replace(">$Configuration<",">$Replace<")
+				$line.Replace(">$Configuration<",">$Rename<")
 			} else {
 				$line
 			}
