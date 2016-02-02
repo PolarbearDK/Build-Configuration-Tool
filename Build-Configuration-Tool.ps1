@@ -115,8 +115,10 @@ function Rename-PropertyGroup($lines, $from, $to) {
 # handle .csproj
 Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recurse | ForEach-Object {
 	$file = $_
-	echo $file.FullName
+	Write-Output $file.FullName
 	$content = Load-File $file.FullName
+	
+	# stream lines through filter
 	$newContent = for($i=0; $i -lt $content.Length; $i++) {
 		$line = $content[$i]
 		Write-Verbose "Processing line [$i]$line"
@@ -159,22 +161,72 @@ Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recu
 
 			if($Copy -ne "") {
 				$newFileName = $filename -replace ([regex]::Escape(".$Configuration.config")), ".$Copy.Config"
-				$item -replace ([regex]::Escape($filename)), $newFilename
-				Copy-Item $filenameWithPath -Destination (Join-Path $file.Directory.FullName $newFileName)
+				$newItem = $item -replace ([regex]::Escape($filename)), $newFilename
+				
+				# Are there a reference to the file already?
+				if($content -contains ($newItem | Select-Object -First 1)) {
+					Write-Verbose "There is already a reference to $newFileName. Reference wil not be added"
+				} else {
+					Write-Verbose "Adding reference to file: $newFileName."
+					# Add lines for new file reference to output stream
+					$newItem
+				}
+				
+				$newFilePath =  Join-Path $file.Directory.FullName $newFileName
+				if(Test-Path $newFilePath) {
+					$fileCounter = 0
+					Do { 
+						$resolvePath = "$newFilePath.Orig" 
+						if($fileCounter -ne 0) {$resolvePath = "$resolvePath$fileCounter"}
+						$fileCounter++ 
+					} while(Test-Path $resolvePath) 
+					Move-Item $newFilePath -Destination $resolvePath
+					Write-Warning "Existing file: $newFilePath has been renamed to: $resolvePath"
+				}
+				
+				Copy-Item $filenameWithPath -Destination $newFilePath
 			}
 
 			if($Rename -ne "") {
 				$newFileName = $filename -replace ([regex]::Escape(".$Configuration.config")), ".$Rename.Config"
-				$item -replace ([regex]::Escape($filename)), $newFilename
-				Move-Item $filenameWithPath -Destination (Join-Path $file.Directory.FullName $newFileName)
-			} else {
-				if(-not $Delete){
-					$item
+				$newItem = $item -replace ([regex]::Escape($filename)), $newFilename
+				
+				# Are there a reference to the file already?
+				if($content -contains ($newItem | Select-Object -First 1)) {
+					Write-Verbose "There is already a reference to $newFileName. Reference wil not be added"
 				} else {
-					Remove-Item $filenameWithPath
+					Write-Verbose "Adding reference to file: $newFileName."
+					# Add lines for new file reference to output stream
+					$newItem
+				}
+				
+				$newFilePath =  Join-Path $file.Directory.FullName $newFileName
+				if(Test-Path $newFilePath) {
+					$fileCounter = 0
+					Do { 
+						$resolvePath = "$newFilePath.Orig" 
+						if($fileCounter -ne 0) {$resolvePath = "$resolvePath$fileCounter"}
+						$fileCounter++ 
+					} while(Test-Path $resolvePath) 
+					Move-Item $newFilePath -Destination $resolvePath
+					Write-Warning "Existing file: $newFilePath has been renamed to: $resolvePath"
+				}
+				
+				Move-Item $filenameWithPath -Destination $newFilePath
+			} else {
+				if($Delete){
+					# Do not output item to stream, thereby removing reference from file
+					# Remove file
+					if(Test-Path $filenameWithPath) { 
+						Remove-Item $filenameWithPath
+					}
+				} else {
+					#output item to stream
+					$item
 				}
 			}
 		} else {
+			#output line to stream without changes
 			$line
 		}
 	}
