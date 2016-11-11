@@ -160,7 +160,7 @@ Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recu
 				}
 
 			if($Copy -ne "") {
-				$newFileName = $filename -replace ([regex]::Escape(".$Configuration.config")), ".$Copy.Config"
+				$newFileName = $filename -replace ([regex]::Escape(".$Configuration.config")), ".$Copy.config"
 				$newItem = $item -replace ([regex]::Escape($filename)), $newFilename
 				
 				# Are there a reference to the file already?
@@ -173,22 +173,24 @@ Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recu
 				}
 				
 				$newFilePath =  Join-Path $file.Directory.FullName $newFileName
-				if(Test-Path $newFilePath) {
-					$fileCounter = 0
-					Do { 
-						$resolvePath = "$newFilePath.Orig" 
-						if($fileCounter -ne 0) {$resolvePath = "$resolvePath$fileCounter"}
-						$fileCounter++ 
-					} while(Test-Path $resolvePath) 
-					Move-Item $newFilePath -Destination $resolvePath
-					Write-Warning "Existing file: $newFilePath has been renamed to: $resolvePath"
+				if($filenameWithPath -ine $newFilePath) {
+					if(Test-Path $newFilePath) {
+						$fileCounter = 0
+						Do { 
+							$resolvePath = "$newFilePath.orig" 
+							if($fileCounter -ne 0) {$resolvePath = "$resolvePath$fileCounter"}
+							$fileCounter++ 
+						} while(Test-Path $resolvePath) 
+						Move-Item $newFilePath -Destination $resolvePath
+						Write-Warning "Existing file: $newFilePath has been renamed to: $resolvePath"
+					}
 				}
 				
 				Copy-Item $filenameWithPath -Destination $newFilePath
 			}
 
 			if($Rename -ne "") {
-				$newFileName = $filename -replace ([regex]::Escape(".$Configuration.config")), ".$Rename.Config"
+				$newFileName = $filename -replace ([regex]::Escape(".$Configuration.config")), ".$Rename.config"
 				$newItem = $item -replace ([regex]::Escape($filename)), $newFilename
 				
 				# Are there a reference to the file already?
@@ -201,17 +203,18 @@ Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recu
 				}
 				
 				$newFilePath =  Join-Path $file.Directory.FullName $newFileName
-				if(Test-Path $newFilePath) {
-					$fileCounter = 0
-					Do { 
-						$resolvePath = "$newFilePath.Orig" 
-						if($fileCounter -ne 0) {$resolvePath = "$resolvePath$fileCounter"}
-						$fileCounter++ 
-					} while(Test-Path $resolvePath) 
-					Move-Item $newFilePath -Destination $resolvePath
-					Write-Warning "Existing file: $newFilePath has been renamed to: $resolvePath"
+				if($filenameWithPath -ine $newFilePath) {
+					if(Test-Path $newFilePath) {
+						$fileCounter = 0
+						Do { 
+							$resolvePath = "$newFilePath.orig" 
+							if($fileCounter -ne 0) {$resolvePath = "$resolvePath$fileCounter"}
+							$fileCounter++ 
+						} while(Test-Path $resolvePath) 
+						Move-Item $newFilePath -Destination $resolvePath
+						Write-Warning "Existing file: $newFilePath has been renamed to: $resolvePath"
+					}
 				}
-				
 				Move-Item $filenameWithPath -Destination $newFilePath
 			} else {
 				if($Delete){
