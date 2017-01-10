@@ -68,7 +68,7 @@ if($Delete) {
 }
 
 # handle .SLN
-Get-ChildItem *.sln -Recurse | ForEach-Object {
+Get-ChildItem  .\*,.\*\*,.\*\*\* -Filter *.sln | ForEach-Object {
 	echo $_.FullName
 
 	$content = Load-File $_.FullName | 
@@ -112,8 +112,14 @@ function Rename-PropertyGroup($lines, $from, $to) {
 	$lines -replace $search1,$to -replace $search2,$to
 }
 
-# handle .csproj
-Get-ChildItem . -File -Include *.csproj,*.vbproj,*.scproj,TdsGlobal.config -Recurse | ForEach-Object {
+function Pattern-Like($str,$patterns){
+    foreach($pattern in $patterns) { if($str -like $pattern) { return $true; } }
+    return $false;
+}
+
+# handle project files.
+$patterns = @("*.csproj", "*.vbproj", "*.scproj", "TdsGlobal.config")
+Get-ChildItem .\*,.\*\*,.\*\*\* -File | Where-Object { (Pattern-Like $_.FullName $patterns) -eq $true } | ForEach-Object {
 	$file = $_
 	Write-Output $file.FullName
 	$content = Load-File $file.FullName

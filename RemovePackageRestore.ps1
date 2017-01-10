@@ -26,7 +26,7 @@ $restorePackages = '[ \t]*<RestorePackages>.*?</RestorePackages>[\r]?[\n]'
 $nuGetPackageImportStamp = '[ \t]*<NuGetPackageImportStamp>.*?</NuGetPackageImportStamp>[\r]?[\n]'
 $ensureNuGetPackageBuildImports = '[ \t]*(?smi)<Target Name="EnsureNuGetPackageBuildImports".*?</Target>[\r]?[\n]'
 
-foreach ($projFile in Get-ChildItem -Recurse -Path $solutionDirectory -Filter *.csproj | sort-object)
+foreach ($projFile in  Get-ChildItem .\*,.\*\*,.\*\*\* -Path $solutionDirectory -Include *.csproj | sort-object)
 {
     $content =  Load-File $projFile.FullName
     $content = $content `
